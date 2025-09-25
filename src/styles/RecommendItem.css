@@ -1,0 +1,64 @@
+.recommendation-item {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.recommendation-item:hover {
+  background-color: #f5f5f5;
+}
+
+.recommendation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.recommendation-info {
+  flex: 1;
+}
+
+.recommendation-rank {
+  font-size: 14px;
+  color: #999;
+  margin-right: 8px;
+}
+
+.recommendation-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.recommendation-artist {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.recommendation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.recommendation-tag {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.recommendation-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.recommendation-score {
+  font-size: 14px;
+  color: #666;
+}

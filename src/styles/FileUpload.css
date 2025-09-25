@@ -1,0 +1,39 @@
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #999;
+}
+
+.upload-icon {
+  margin: 0 auto;
+  display: block;
+  color: #999;
+}
+
+.clickable-label {
+  cursor: pointer;
+}
+
+.upload-text {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #666;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.upload-subtext {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #999;
+}

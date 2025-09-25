@@ -1,0 +1,29 @@
+.selectedTrack {
+    background-color: '#eff6ff';
+    border: '1px solid #bfdbfe';
+    border-radius: '8px';
+    padding: '16px';
+    margin-bottom: '16px';
+}
+
+.selectedTrackTitle {
+    font-weight: '500';
+    color: '#1e40af';
+    margin-bottom: '8px';
+}
+
+.selectedTrackName {
+    font-weight: '600';
+    color: '#1e3a8a';
+}
+
+.selectedTrackArtist {
+    color: '#3730a3';
+    font-size: '14px';
+}
+
+.selectedTrackStats {
+    margin-top: '8px';
+    font-size: '12px';
+    color: '#1e40af';
+}
