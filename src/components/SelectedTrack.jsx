@@ -10,7 +10,8 @@ const SelectedTrack = ({ song }) => {
       <div className="selectedTrackStats">
         <span>{song.tempo.toFixed(0)} BPM </span>
         <span className="selectedTrackKey">Key: {song.camelotKey} </span>
-        <span className="selectedTrackEnergy">Energy: {(song.energy * 100).toFixed(0)}%</span>
+        <span className="selectedTrackEnergy">Energy: {(song.energy * 100).toFixed(0)}% </span>
+        <span className="selectedTrackDanceability">Danceability: {(song.danceability * 100).toFixed(0)}% </span>
       </div>
     </div>
   );
