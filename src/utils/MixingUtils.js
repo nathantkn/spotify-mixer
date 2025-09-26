@@ -26,8 +26,11 @@ export const findMixingRecommendations = (selectedSong, csvData) => {
 
       // Tempo compatibility
       const tempoDiff = Math.abs(track.tempo - targetTempo);
-      if (tempoDiff <= tempoRange) {
+      if (track.tempo == targetTempo) {
         score += 50;
+        reasons.push('Perfect tempo match');
+      } else if (tempoDiff <= tempoRange) {
+        score += 35;
         reasons.push('Similar tempo');
       } else if (tempoDiff <= tempoRange * 2) {
         score += 25;
