@@ -1,0 +1,69 @@
+/* Shared by the three sheet bodies. */
+.pair { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 24px; }
+.mini { display: flex; align-items: center; gap: 10px; }
+.arrow { color: var(--faint); font-size: 12px; padding-left: 12px; }
+
+.stars { display: flex; gap: 6px; margin-bottom: 6px; }
+.star {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--raised); color: var(--mut);
+  font-size: 16px; font-weight: 650;
+  text-align: center;
+  transition: all .15s;
+}
+.star:hover { color: var(--text); }
+.star.on { color: #0a0a0b; }
+.ratelbl { color: var(--mut); font-size: 12px; margin-bottom: 20px; height: 16px; }
+
+.note {
+  width: 100%; min-height: 96px; vertical-align: bottom; margin-bottom: 6px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  resize: vertical;
+}
+.note:focus { outline: none; border-color: rgba(255, 255, 255, .2); }
+.note:focus-visible { box-shadow: none; }
+.note::placeholder { color: var(--faint); }
+
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 32px; }
+.facts.flush { margin-top: 0; }
+.fact { background: var(--bg); border-radius: 12px; padding: 12px 14px; }
+.fact .k { color: var(--mut); font-size: 12px; }
+.fact .v { font-weight: 600; margin-top: 2px; }
+.fact .s { font-size: 12px; margin-top: 1px; }
+
+.sec { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.sec h3 { font-size: 14px; font-weight: 600; }
+.sec span { color: var(--mut); font-size: 12px; }
+
+.recs { list-style: none; padding: 0; }
+.rec { display: flex; align-items: center; gap: 12px; padding: 8px; margin: 0 -8px; border-radius: 10px; }
+.rec:hover { background: var(--raised); }
+.recTitle { font-size: 14px; }
+.match { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; width: 36px; text-align: right; }
+.add {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  color: var(--mut); font-size: 18px; line-height: 1;
+  opacity: 0; transition: opacity .15s;
+}
+.rec:hover .add, .add:focus-visible, .add.always { opacity: 1; }
+.add:hover { background: var(--bg); color: var(--text); }
+@media (hover: none) { .add { opacity: 1; } }
+.none { color: var(--mut); font-size: 13px; padding: 12px 0; }
+
+/* add song */
+.h2 { font-size: 20px; font-weight: 700; margin: 4px 0 18px; }
+.results { margin-top: 8px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+.lbl { display: block; color: var(--mut); font-size: 12px; margin: 0 0 4px 2px; }
+.primary {
+  width: 100%; height: 42px; margin-top: 12px;
+  border-radius: 10px;
+  background: var(--text); color: var(--bg);
+  font-weight: 600; font-size: 14px;
+  text-align: center;
+}
+.primary:disabled { opacity: .3; }
+.toast { color: var(--r5); font-size: 12px; height: 16px; margin-top: 8px; }

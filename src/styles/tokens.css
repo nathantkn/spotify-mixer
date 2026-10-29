@@ -1,0 +1,19 @@
+:root {
+  --bg: #0a0a0b;
+  --surface: #141416;
+  --raised: #1c1c1f;
+  --line: rgba(255, 255, 255, .06);
+  --text: #f4f4f5;
+  --mut: #8b8b93;
+  --faint: #4a4a50;
+  /* rating 1..5; r5 doubles as the accent */
+  --r1: #ef5b5b;
+  --r2: #f08a4b;
+  --r3: #e8c547;
+  --r4: #8bd46a;
+  --r5: #3ddc84;
+
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+  --focus-ring: 0 0 0 2px rgba(255, 255, 255, .25);
+  --ease-sheet: cubic-bezier(.2, .8, .2, 1);
+}

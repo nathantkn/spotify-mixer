@@ -1,0 +1,17 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; }
+
+html { color-scheme: dark; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+button:disabled { cursor: default; }
+
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }

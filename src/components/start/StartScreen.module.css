@@ -1,0 +1,38 @@
+.start { max-width: 560px; margin: 0 auto; padding: 12vh 24px 80px; }
+.h1 { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 4px; }
+.sub { color: var(--mut); font-size: 15px; margin-bottom: 36px; }
+
+.option {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; text-align: left;
+  padding: 12px 14px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line);
+  margin-bottom: 8px;
+  transition: border-color .15s;
+}
+.option:hover { border-color: rgba(255, 255, 255, .2); }
+.opticon {
+  width: 40px; height: 40px; border-radius: 10px; flex: none;
+  background: var(--raised); color: var(--mut);
+  display: grid; place-items: center; font-size: 18px;
+  overflow: hidden;
+}
+.chev { color: var(--faint); font-size: 22px; }
+
+.links { display: flex; gap: 8px; justify-content: center; margin-top: 20px; color: var(--faint); font-size: 13px; }
+.links button { padding: 1px 6px; color: var(--mut); border-radius: 4px; }
+.links button:hover { color: var(--text); }
+
+/* recent plans */
+.rhead { color: var(--mut); font-size: 12px; margin: 0 0 8px 2px; font-weight: 400; }
+.recentList { list-style: none; padding: 0 0 12px; }
+.recent { position: relative; }
+.rm {
+  position: absolute; right: 40px; top: 50%; margin-top: -14px;
+  width: 28px; height: 28px; border-radius: 50%;
+  color: var(--mut); opacity: 0;
+  transition: opacity .15s;
+}
+.recent:hover .rm, .rm:focus-visible { opacity: 1; }
+.rm:hover { background: var(--raised); color: var(--r1); }
+@media (hover: none) { .rm { opacity: 1; } }

@@ -1,16 +1,38 @@
-# React + Vite
+# Mix Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plan DJ mixes: order tracks, rate and annotate each transition, and get suggestions ranked by
+Camelot key, BPM and genre. Client-side only (React 19 + Vite); plans autosave to `localStorage`
+and export as `.mixplan.json`.
 
-Currently, two official plugins are available:
+- Design source of truth: `design/mix-planner.html` (prototype) and `docs/MIX_PLANNER_HANDOVER.md`, kept locally (gitignored)
+- Domain logic (unit-tested): `src/lib/`. State, storage and autosave: `src/state/`
+- Track data comes through `TrackProvider` (`src/lib/provider.ts`): [ReccoBeats](https://reccobeats.com/docs/documentation/introduction) by default, or the built-in mock library
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm run dev        # dev server
+npm test           # unit tests (Vitest)
+npm run build      # typecheck + production build
+npm run lint
+```
 
-## React Compiler
+## Track data (ReccoBeats)
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+ReccoBeats is free and keyless. It supplies search, seed-based recommendations (`/v1/track/recommendation`)
+and audio features (tempo, key, mode → Camelot). Tracks are matched by Spotify ID, so Exportify CSV
+imports work directly, and missing BPM/key/length is filled in after import. ReccoBeats has no genre data,
+so the genre part of the match score only applies to tracks from your own CSV.
 
-## Expanding the ESLint configuration
+- **Dev/preview:** requests go to `/reccobeats/*`, which Vite proxies to `https://api.reccobeats.com`.
+- **Static deploy:** set `VITE_RECCOBEATS_URL` (see `.env.example`), either to the API directly if it allows
+  your origin (CORS is unconfirmed) or to a small proxy.
+- **Offline:** `VITE_TRACK_PROVIDER=mock npm run dev`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Not yet confirmed against the live API (the code is in `src/lib/reccobeats/`):
+
+- the track-search path and params (`SEARCH_PATH` / `searchParams` in `provider.ts`)
+- the exact response envelopes; the parser accepts bare arrays or `{content: [...]}`
+- rate limits; 429s are retried with `Retry-After` or backoff, and batches are capped at 40 IDs
+
+## Credits
+
+Song tempo, key and genre data provided by [GetSongBPM](https://getsongbpm.com).

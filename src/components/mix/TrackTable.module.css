@@ -1,0 +1,96 @@
+.cols, .track {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 72px 72px 56px;
+  gap: 14px;
+  align-items: center;
+  padding: 0 12px;
+}
+.cols {
+  height: 40px; margin-bottom: 8px;
+  color: var(--mut); font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 1;
+  background: var(--bg);
+}
+.cols > div { position: relative; }
+.dv::before {
+  content: ""; position: absolute; left: -8px; top: 50%;
+  width: 1px; height: 16px; margin-top: -8px;
+  background: rgba(255, 255, 255, .12);
+}
+.num, .time { color: var(--mut); font-size: 14px; font-variant-numeric: tabular-nums; }
+.num { text-align: center; }
+.time { text-align: right; }
+.bpm { font-size: 14px; font-variant-numeric: tabular-nums; }
+.clock { vertical-align: -3px; }
+
+.list { list-style: none; padding: 0; }
+
+.track {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background .15s;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.track:hover { background: var(--surface); }
+.dragging .track:hover { background: none; }
+
+/* The open button stretches over the whole row; the grip handle sits above it. */
+.open {
+  display: flex; align-items: center; gap: 14px;
+  min-width: 0; text-align: left; cursor: pointer;
+}
+.open::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.open:focus-visible { box-shadow: none; }
+.open:focus-visible::after { box-shadow: var(--focus-ring); }
+
+.handle {
+  position: relative; z-index: 1;
+  width: 100%; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  color: inherit;
+  cursor: grab;
+  touch-action: none;
+}
+.grip { display: none; font-size: 16px; letter-spacing: -2px; }
+.track:hover .grip, .handle:focus-visible .grip { display: inline; }
+.track:hover .n, .handle:focus-visible .n { display: none; }
+
+.isDragging { opacity: .35; }
+.dropBefore::before, .dropAfter::after {
+  content: ""; position: absolute; left: 12px; right: 12px; height: 2px;
+  background: var(--r5); border-radius: 2px; box-shadow: 0 0 8px var(--r5);
+}
+.dropBefore::before { top: -3px; }
+.dropAfter::after { bottom: -3px; }
+
+.overlay {
+  /* Translucent like a native drag ghost, so the drop line stays visible underneath. */
+  background: var(--raised);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .4);
+  cursor: grabbing;
+  opacity: .7;
+}
+.overlay .grip { display: inline; }
+.overlay .n { display: none; }
+
+/* transition link */
+.link {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; height: 40px; padding-left: 75px;
+  cursor: pointer;
+}
+.rail { width: 2px; height: 100%; background: var(--line); border-radius: 2px; }
+.link:focus-visible { box-shadow: none; }
+.link:hover .badge { border-color: rgba(255, 255, 255, .18); }
+.link:focus-visible .badge { box-shadow: var(--focus-ring); }
+
+@media (max-width: 639px) {
+  .cols, .track { grid-template-columns: 28px minmax(0, 1fr) 48px 56px; }
+  .time { display: none; }
+}

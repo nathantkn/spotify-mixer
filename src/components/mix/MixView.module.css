@@ -1,0 +1,18 @@
+.wrap { max-width: 860px; margin: 0 auto; padding: 56px 24px 80px; }
+.sub { color: var(--mut); font-size: 14px; margin-bottom: 32px; }
+
+.empty { text-align: center; padding: 48px 0 8px; color: var(--mut); }
+.empty b { display: block; color: var(--text); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+
+.addsong {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; margin-top: 12px; padding: 12px;
+  border-radius: 12px; border: 1px dashed rgba(255, 255, 255, .1);
+  color: var(--mut); font-size: 14px;
+  transition: all .15s;
+}
+.addsong:hover { color: var(--text); border-color: rgba(255, 255, 255, .22); background: var(--surface); }
+.plus {
+  width: 44px; height: 44px; border-radius: 8px; margin-left: 42px;
+  background: var(--surface); display: grid; place-items: center; font-size: 20px;
+}

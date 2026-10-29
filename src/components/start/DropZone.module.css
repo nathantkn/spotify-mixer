@@ -1,0 +1,22 @@
+.drop {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 100%; text-align: center;
+  padding: 40px 24px; border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, .14);
+  background: var(--surface);
+  transition: all .15s;
+}
+.drop:hover, .over { border-color: var(--r5); background: #151a17; }
+.over { transform: scale(1.01); }
+.icon {
+  width: 48px; height: 48px; border-radius: 12px; margin-bottom: 8px;
+  background: var(--raised); color: var(--mut);
+  display: grid; place-items: center;
+}
+.drop:hover .icon, .over .icon { color: var(--r5); }
+.title { font-weight: 600; font-size: 16px; }
+.sub { color: var(--mut); font-size: 13px; max-width: 380px; }
+.sub u { color: var(--text); text-underline-offset: 2px; }
+.sub b { font-weight: 500; color: var(--text); }
+.msg { font-size: 13px; min-height: 20px; margin-top: 10px; color: var(--mut); }
+.err { color: var(--r1); }

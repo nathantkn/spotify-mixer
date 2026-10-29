@@ -1,0 +1,12 @@
+.h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 4px; }
+.input {
+  display: block;
+  width: calc(100% + 6px);
+  margin-left: -6px; padding: 0 6px;
+  border: 0; border-radius: 6px;
+  background: transparent;
+  font: inherit; letter-spacing: inherit; line-height: 1.45;
+  text-overflow: ellipsis;
+}
+.input:hover { background: var(--surface); }
+.input:focus { outline: none; background: var(--surface); box-shadow: 0 0 0 1px rgba(255, 255, 255, .15); }
