@@ -41,6 +41,14 @@ describe('http client', () => {
     expect(bad).toHaveBeenCalledTimes(1);
   });
 
+  it('does not retry a bare 503, but honours 503 with Retry-After', async () => {
+    const bare = vi.fn(async () => json({ error: 'GETSONGBPM_API_KEY is not set' }, 503));
+    await expect(createClient({ baseUrl: 'x', fetch: bare }).get('/p')).rejects.toMatchObject({ status: 503 });
+    expect(bare).toHaveBeenCalledTimes(1);
+    const later = vi.fn().mockResolvedValueOnce(json({}, 503, { 'Retry-After': '1' })).mockResolvedValueOnce(json({ ok: 1 }));
+    await expect(createClient({ baseUrl: 'x', fetch: later, sleep: async () => {} }).get('/p')).resolves.toEqual({ ok: 1 });
+  });
+
   it('limits concurrency', async () => {
     let inFlight = 0;
     let peak = 0;

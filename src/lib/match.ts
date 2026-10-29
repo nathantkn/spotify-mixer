@@ -9,15 +9,19 @@ const strip = (s: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 
-/** "Song (feat. X) - Remastered 2011" → "song" */
-export function cleanTitle(title: string): string {
-  return strip(
+/** "Song (feat. X) - Remastered 2011" → "Song", keeping case; good for search queries. */
+export function baseTitle(title: string): string {
+  return (
     title
       .replace(/\s[-–—]\s.*$/, '')
       .replace(/[([](?:feat|ft|with|prod)\b[^)\]]*[)\]]/gi, '')
-      .replace(/\s(?:feat|ft)\.?\s.*$/i, ''),
+      .replace(/\s(?:feat|ft)\.?\s.*$/i, '')
+      .trim() || title.trim()
   );
 }
+
+/** "Song (feat. X) - Remastered 2011" → "song" */
+export const cleanTitle = (title: string) => strip(baseTitle(title));
 
 export const cleanArtist = (artist: string) => strip(artist);
 

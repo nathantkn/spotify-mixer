@@ -1,4 +1,4 @@
-/** Small JSON client: limited concurrency and 429/503 retry with Retry-After or backoff. */
+/** Small JSON client: limited concurrency, and retry on 429 (or 503 + Retry-After) with Retry-After or backoff. */
 
 export class HttpError extends Error {
   constructor(
@@ -71,8 +71,10 @@ export function createClient({
         release();
       }
       if (res.ok) return (await res.json()) as T;
-      if ((res.status === 429 || res.status === 503) && attempt < maxRetries) {
-        const retryAfter = Number(res.headers.get('Retry-After'));
+      const retryAfter = Number(res.headers.get('Retry-After'));
+      // 503 only when the server says when to come back; ours uses a bare 503 for "not configured".
+      const retryable = res.status === 429 || (res.status === 503 && retryAfter > 0);
+      if (retryable && attempt < maxRetries) {
         await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1000 * 2 ** attempt);
         continue;
       }
