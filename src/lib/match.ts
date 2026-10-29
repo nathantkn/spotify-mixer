@@ -1,4 +1,4 @@
-/** Loose matching between catalogues (CSV, Spotify, GetSongBPM, Gemini suggestions). */
+/** Loose matching between catalogues (CSV, Spotify, FreqBlog, Gemini suggestions). */
 
 const strip = (s: string) =>
   s

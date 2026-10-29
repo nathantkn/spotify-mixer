@@ -1,5 +1,7 @@
+import { Trash2 } from 'lucide-react';
 import { cx } from '../../lib/cx';
 import { recommend } from '../../lib/recommend';
+import type { Track } from '../../lib/types';
 import { usePlan } from '../../state/PlanContext';
 import { useCandidates } from '../../state/useCandidates';
 import shared from '../../styles/shared.module.css';
@@ -11,14 +13,17 @@ import { TrackMini } from './TrackMini';
 export function TrackSheet({
   trackId,
   onShowTransition,
+  onRemove,
 }: {
   trackId: string;
   onShowTransition: (fromId: string) => void;
+  /** Removes the track (the mix view offers Undo). */
+  onRemove: (track: Track, index: number) => void;
 }) {
   const { plan, dispatch } = usePlan();
   const i = plan.tracks.findIndex((t) => t.id === trackId);
   const a = plan.tracks[i];
-  const pool = useCandidates(a ? [a] : []);
+  const { state: pool, find } = useCandidates(a ? [a] : []);
   if (!a) return null;
   const recs = pool.status === 'ready' ? recommend([a], pool.tracks, plan.tracks) : [];
 
@@ -37,13 +42,19 @@ export function TrackSheet({
         <span>key · tempo · genre</span>
       </div>
       <RecommendationList
-        pool={pool}
+        state={pool}
         recs={recs}
+        targets={[a]}
+        onFind={find}
         onInsert={(t) => {
           dispatch({ type: 'insertAt', index: i + 1, track: t });
           onShowTransition(a.id);
         }}
       />
+      <button type="button" className={styles.remove} onClick={() => onRemove(a, i)}>
+        <Trash2 size={16} aria-hidden="true" />
+        Remove from mix
+      </button>
     </>
   );
 }

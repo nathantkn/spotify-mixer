@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fromKeyName, fromOpenKey } from '../../src/lib/camelot';
 import { baseTitle, cleanTitle, sameSong } from '../../src/lib/match';
 import { buildRecommendationPrompt, parseSuggestions } from '../gemini';
-import { parseSearch, parseSong } from '../getsongbpm';
+import { parseLookup } from '../freqblog';
 
 describe('key notation', () => {
   it.each([
@@ -33,29 +33,31 @@ describe('song matching', () => {
   });
 });
 
-describe('GetSongBPM parsing', () => {
-  const raw = {
-    id: 'o2r0L', title: 'Master of Puppets', tempo: '220', time_sig: '4/4', key_of: 'Em', open_key: '2m',
-    artist: { id: 'nZR', name: 'Metallica', genres: ['Heavy Metal', 'rock'] },
-  };
-  it('parses a song', () => {
-    expect(parseSong(raw)).toEqual({ id: 'o2r0L', title: 'Master of Puppets', artist: 'Metallica', genres: ['heavy metal', 'rock'], bpm: 220, key: '9A' });
+describe('FreqBlog parsing', () => {
+  it('reads a flat lookup body, preferring the Camelot field', () => {
+    const body = { id: 'fb1', title: 'Blinding Lights', artist: 'The Weeknd', bpm: 171.04, key: 'C#-Minor', camelot: '12A', open_key: '5m', energy: 0.8 };
+    expect(parseLookup(body)).toEqual({ id: 'fb1', title: 'Blinding Lights', artist: 'The Weeknd', genres: [], bpm: 171, key: '12A' });
   });
-  it('falls back to key_of without open_key, and tolerates gaps', () => {
-    expect(parseSong({ ...raw, open_key: undefined, key_of: 'C' })?.key).toBe('8B');
-    expect(parseSong({ id: 'x', title: 'T', tempo: '' })).toMatchObject({ artist: 'Unknown artist', bpm: null, key: null, genres: [] });
-    expect(parseSong({ title: 'no id' })).toBeNull();
+  it('reads features nested under audio_features, and falls back through key notations', () => {
+    expect(parseLookup({ track_name: 'X', artists: [{ name: 'A' }, { name: 'B' }], audio_features: { tempo: 99.6, open_key: '1d' } })).toMatchObject({ title: 'X', artist: 'A, B', bpm: 100, key: '8B' });
+    expect(parseLookup({ data: { title: 'Y', artist: 'C', bpm: 120, key: 'C#-Minor', genres: 'House, Deep House' } })).toMatchObject({ key: '12A', genres: ['house', 'deep house'] });
   });
-  it('reads the search envelope, including the no-result form', () => {
-    expect(parseSearch({ search: [raw, { bad: 1 }] })).toHaveLength(1);
-    expect(parseSearch({ search: { error: 'no result' } })).toEqual([]);
-    expect(parseSearch(null)).toEqual([]);
+  it('fills names from the request when the body has none, and rejects bodies without data', () => {
+    expect(parseLookup({ bpm: 90 }, { title: 'Nights', artists: 'Frank Ocean, X' })).toMatchObject({ title: 'Nights', artist: 'Frank Ocean', id: 'nights|frank ocean' });
+    expect(parseLookup({ title: 'No data', artist: 'Z' })).toBeNull();
+    expect(parseLookup('nope')).toBeNull();
+  });
+  it('parses hyphenated and spelled-out key names', () => {
+    expect(fromKeyName('C#-Minor')).toBe('12A');
+    expect(fromKeyName('Db Major')).toBe('3B');
+    expect(fromKeyName('CM')).toBe('8B');
+    expect(fromKeyName('Cm')).toBe('5A');
   });
 });
 
 describe('Gemini', () => {
   const seed = { id: 'g1', title: 'Nights', artist: 'Frank Ocean', genres: ['r&b'], bpm: 90, key: '6A' as const };
-  it('builds a prompt from GetSongBPM facts', () => {
+  it('builds a prompt from FreqBlog facts', () => {
     const p = buildRecommendationPrompt([seed]);
     expect(p).toContain('"Nights" by Frank Ocean — 90 BPM, key 6A (Camelot), genres: r&b');
     expect(p).toContain('right after this song');
@@ -65,6 +67,6 @@ describe('Gemini', () => {
     expect(parseSuggestions('[{"title":"A","artist":"X"},{"title":"","artist":"Y"},{"title":"B"}]')).toEqual([{ title: 'A', artists: 'X' }]);
     expect(parseSuggestions('```json\n{"songs":[{"title":"A","artist":"X"}]}\n```')).toEqual([{ title: 'A', artists: 'X' }]);
     expect(parseSuggestions('not json')).toEqual([]);
-    expect(parseSuggestions(JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ title: `S${i}`, artist: 'X' }))))).toHaveLength(15);
+    expect(parseSuggestions(JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ title: `S${i}`, artist: 'X' }))))).toHaveLength(10);
   });
 });

@@ -25,3 +25,7 @@ dist-ssr
 
 docs/
 design/
+# local secrets
+.env
+.env.*
+!.env.example

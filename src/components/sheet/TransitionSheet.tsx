@@ -20,7 +20,7 @@ export function TransitionSheet({ fromId }: { fromId: string }) {
   const i = plan.tracks.findIndex((t) => t.id === fromId);
   const a = plan.tracks[i];
   const b = plan.tracks[i + 1];
-  const pool = useCandidates(a && b ? [a, b] : []);
+  const { state: pool, find } = useCandidates(a && b ? [a, b] : []);
   if (!a || !b) return null;
 
   const note = plan.notes[noteKey(a.id, b.id)] ?? UNRATED;
@@ -85,7 +85,13 @@ export function TransitionSheet({ fromId }: { fromId: string }) {
         <span>fits between both</span>
       </div>
       {/* Inserting puts the track between A and B; this sheet then shows A → new track. */}
-      <RecommendationList pool={pool} recs={recs} onInsert={(t) => dispatch({ type: 'insertAt', index: i + 1, track: t })} />
+      <RecommendationList
+        state={pool}
+        recs={recs}
+        targets={[a, b]}
+        onFind={find}
+        onInsert={(t) => dispatch({ type: 'insertAt', index: i + 1, track: t })}
+      />
     </>
   );
 }

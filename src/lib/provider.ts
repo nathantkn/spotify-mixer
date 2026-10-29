@@ -10,6 +10,8 @@ export interface TrackProvider {
   search(query: string, signal?: AbortSignal): Promise<Track[]>;
   /** Tracks that may mix well with the seeds. The app filters and ranks them itself (recommend.ts). */
   candidates(seeds: Track[], signal?: AbortSignal): Promise<Track[]>;
+  /** Candidates already fetched for these seeds this session, without asking again; null if none. */
+  cachedCandidates(seeds: Track[]): Track[] | null;
   /** Features for tracks the provider knows, keyed by track id. Unknown tracks are left out. */
   features(tracks: Track[]): Promise<Record<string, TrackFeatures>>;
 }

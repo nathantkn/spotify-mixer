@@ -93,7 +93,7 @@ export function TrackRow({
           </button>
         }
         summary={
-          <button type="button" className={styles.open} onClick={() => onOpen(track.id)}>
+          <button type="button" className={styles.open} data-track-open={track.id} onClick={() => onOpen(track.id)}>
             <TrackSummary track={track} />
           </button>
         }

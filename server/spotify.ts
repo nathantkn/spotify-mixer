@@ -10,7 +10,7 @@ import { buildUrl } from '../src/lib/http';
 import { baseTitle, primaryArtist, sameSong } from '../src/lib/match';
 import { trackIdFor } from '../src/lib/spotifyId';
 import type { Track } from '../src/lib/types';
-import { ConfigError, UpstreamError, type Deps } from './core';
+import { ConfigError, fetchWithTimeout, UpstreamError, type Deps } from './core';
 
 interface SpotifyImage { url: string; width?: number | null }
 interface SpotifyTrack {
@@ -48,14 +48,14 @@ export function createSpotify({ env, fetch, now = Date.now }: Deps) {
   async function getToken(): Promise<string> {
     if (!configured) throw new ConfigError('SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET are not set');
     if (token && token.expires > now()) return token.value;
-    const res = await fetch('https://accounts.spotify.com/api/token', {
+    const res = await fetchWithTimeout(fetch, 'Spotify', 'https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         Authorization: `Basic ${btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`)}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: 'grant_type=client_credentials',
-    });
+    }, 8_000);
     if (!res.ok) throw new UpstreamError('Spotify', res.status);
     const body = (await res.json()) as { access_token: string; expires_in: number };
     token = { value: body.access_token, expires: now() + (body.expires_in - 60) * 1000 };
@@ -65,7 +65,7 @@ export function createSpotify({ env, fetch, now = Date.now }: Deps) {
   async function search(q: string, limit = 10): Promise<Track[]> {
     const url = buildUrl('https://api.spotify.com', '/v1/search', { q, type: 'track', limit: Math.min(limit, 10) });
     for (let attempt = 0; ; attempt++) {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${await getToken()}` } });
+      const res = await fetchWithTimeout(fetch, 'Spotify', url, { headers: { Authorization: `Bearer ${await getToken()}` } }, 8_000);
       if (res.status === 401 && attempt === 0) {
         token = null; // expired early; get a fresh one once
         continue;

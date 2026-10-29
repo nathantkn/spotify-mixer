@@ -42,10 +42,19 @@
 .rec { display: flex; align-items: center; gap: 12px; padding: 8px; margin: 0 -8px; border-radius: 10px; }
 .rec:hover { background: var(--raised); }
 .recTitle { font-size: 14px; }
-.match { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; width: 36px; text-align: right; }
+.match {
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
+  min-width: 36px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right;
+}
+button.match { border-radius: 6px; padding: 2px 4px; margin-right: -4px; }
+button.match:hover { background: var(--bg); }
+.matchChev { transition: transform .15s; }
+.matchChevOpen { transform: rotate(180deg); }
+/* Icon, not a "+" glyph: a text glyph sits on the font baseline and looks off-centre in the circle. */
 .add {
+  display: grid; place-items: center;
   width: 28px; height: 28px; border-radius: 50%; flex: none;
-  color: var(--mut); font-size: 18px; line-height: 1;
+  color: var(--mut);
   opacity: 0; transition: opacity .15s;
 }
 .rec:hover .add, .add:focus-visible, .add.always { opacity: 1; }
@@ -67,3 +76,55 @@
 }
 .primary:disabled { opacity: .3; }
 .toast { color: var(--r5); font-size: 12px; height: 16px; margin-top: 8px; }
+
+/* match breakdown */
+.breakdown {
+  margin: 2px 0 10px 48px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 12px;
+}
+.bdGroup + .bdGroup { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.bdHead { display: flex; justify-content: space-between; gap: 8px; color: var(--mut); margin-bottom: 4px; }
+.bdHead span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bdHead span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.bdRow { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 2px 0; }
+.bdLabel { color: var(--mut); }
+.bdDetail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bdPoints { display: inline-flex; align-items: center; gap: 6px; color: var(--mut); font-variant-numeric: tabular-nums; }
+.meter { width: 32px; height: 4px; border-radius: 2px; background: var(--raised); overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: 2px; }
+.bdTotal {
+  display: flex; justify-content: space-between;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+.bdTotal span:last-child { font-variant-numeric: tabular-nums; }
+.bdNote { color: var(--mut); font-size: 11px; margin-top: 6px; }
+
+/* find recommendations */
+.find { display: flex; flex-direction: column; gap: 8px; }
+.findBtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 42px; border-radius: 10px;
+  background: var(--raised); border: 1px solid var(--line);
+  font-size: 14px; font-weight: 600;
+  transition: border-color .15s;
+}
+.findBtn:hover:not(:disabled) { border-color: rgba(255, 255, 255, .2); }
+.findBtn:disabled { color: var(--mut); }
+.findHint { color: var(--mut); font-size: 12px; text-align: center; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+/* remove track */
+.remove {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 42px; margin-top: 32px;
+  border-radius: 10px; border: 1px solid rgba(239, 91, 91, .3);
+  color: var(--r1); font-size: 14px; font-weight: 600;
+  transition: background .15s, border-color .15s;
+}
+.remove:hover { background: rgba(239, 91, 91, .08); border-color: rgba(239, 91, 91, .5); }

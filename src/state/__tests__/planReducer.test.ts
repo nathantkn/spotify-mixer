@@ -65,7 +65,14 @@ describe('planReducer', () => {
     expect(planReducer(s, { type: 'fillTrackData', patches: { p1: { bpm: 90 } } })).toBe(s); // no-op keeps identity
   });
 
-  it('removes tracks (reducer only)', () => {
-    expect(ids(planReducer(samplePlan(), { type: 'remove', id: 'p3' }))).toEqual(['p1', 'p2', 'p4', 'p5']);
+  it('removes tracks, and putting one back restores its transitions', () => {
+    const start = samplePlan();
+    const without = planReducer(start, { type: 'remove', id: 'p3' });
+    expect(ids(without)).toEqual(['p1', 'p2', 'p4', 'p5']);
+    expect(avgMix(without)).toBe(3); // only p1|p2 is still a neighbouring rated pair
+    const p3 = start.tracks[2];
+    const undone = planReducer(without, { type: 'insertAt', index: 2, track: p3 });
+    expect(undone.tracks).toEqual(start.tracks);
+    expect(avgMix(undone)).toBe(4);
   });
 });

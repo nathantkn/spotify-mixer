@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bpmRel, keyRel, pairScore, tempoFact } from '../scoring';
+import { bpmRel, keyRel, pairPoints, pairScore, tempoFact } from '../scoring';
 import type { Track } from '../types';
 
 const t = (over: Partial<Track>): Track => ({
@@ -39,6 +39,9 @@ describe('bpmRel', () => {
     expect(bpmRel(100, 200).pct).toBe(0);
     expect(bpmRel(160, 80).ok).toBe(2);
     expect(bpmRel(84, 168).pct).toBe(0);
+    expect(bpmRel(100, 100).via).toBe('same');
+    expect(bpmRel(100, 50).via).toBe('double');
+    expect(bpmRel(100, 200).via).toBe('half');
   });
   it('grades shifts', () => {
     expect(bpmRel(100, 103)).toMatchObject({ ok: 2 });
@@ -58,6 +61,12 @@ describe('pairScore', () => {
     expect(pairScore(t({}), t({})).score).toBe(80);
     expect(pairScore(t({ key: null }), t({})).score).toBe(30);
     expect(pairScore(t({ bpm: null, key: null }), t({})).score).toBe(0);
+  });
+  it('breaks the score into points that add up', () => {
+    const p = pairScore(t({ key: '8A', bpm: 100, genres: ['r&b'] }), t({ key: '9A', bpm: 101, genres: ['r&b'] }));
+    const pts = pairPoints(p);
+    expect(pts).toEqual({ key: 45, bpm: 25, genre: 20 });
+    expect(pts.key + pts.bpm + pts.genre).toBe(p.score);
   });
 });
 

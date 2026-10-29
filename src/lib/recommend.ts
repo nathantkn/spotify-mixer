@@ -1,7 +1,13 @@
-import { pairScore } from './scoring';
+import { pairScore, type PairScore } from './scoring';
 import type { Track } from './types';
 
-export interface Recommendation { track: Track; score: number }
+export interface Recommendation {
+  track: Track;
+  /** Average of `pairs` scores, 0..100. */
+  score: number;
+  /** The candidate scored against each target, in target order. */
+  pairs: PairScore[];
+}
 
 const MAX_BPM_SHIFT = 6;
 
@@ -32,13 +38,12 @@ export function recommend(targets: Track[], pool: Track[], plan: Track[], limit 
       return {
         track: c,
         score: Math.round(pairs.reduce((sum, p) => sum + p.score, 0) / pairs.length),
-        fits: pairs.every((p) => p.bpm.pct <= MAX_BPM_SHIFT),
+        pairs,
       };
     })
-    .filter((r) => r.fits)
+    .filter((r) => r.pairs.every((p) => p.bpm.pct <= MAX_BPM_SHIFT))
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ track, score }) => ({ track, score }));
+    .slice(0, limit);
 }
 
 export function matchColor(score: number): string {

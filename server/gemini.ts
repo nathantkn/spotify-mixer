@@ -1,23 +1,29 @@
 /**
- * Gemini suggests songs that might mix well; GetSongBPM then verifies each one.
- * The prompt is built only from GetSongBPM data (GsbSong). Spotify data must never reach it:
+ * Gemini suggests songs that might mix well; FreqBlog then verifies each one.
+ * The prompt is built only from FreqBlog data (FreqSong). Spotify data must never reach it:
  * Spotify's Developer Policy (III.14) forbids ingesting Spotify Content into an AI model.
  */
 import type { SongRef } from '../src/lib/apiTypes';
-import { ConfigError, UpstreamError, type Deps } from './core';
-import type { GsbSong } from './getsongbpm';
+import { ConfigError, fetchWithTimeout, UpstreamError, type Deps } from './core';
+import type { FreqSong } from './freqblog';
 
 const BASE = 'https://generativelanguage.googleapis.com';
-/** Google's rolling alias for the current Flash model; override with GEMINI_MODEL. */
-const DEFAULT_MODEL = 'gemini-flash-latest';
-export const SUGGESTIONS = 15;
+/**
+ * Override with GEMINI_MODEL. Not the `gemini-flash-latest` alias: for new keys, generateContent on it
+ * hangs without answering (checked 2026-10-29), while gemini-3.5-flash replies normally.
+ */
+const DEFAULT_MODEL = 'gemini-3.5-flash';
+/** Each suggestion costs one FreqBlog lookup to verify, and the free tier is 1,000 a month. */
+export const SUGGESTIONS = 10;
+/** Leaves room for the lookups after it inside Vercel's 25s Edge response window. */
+const TIMEOUT_MS = 15_000;
 
-const describe = (s: GsbSong) =>
+const describe = (s: FreqSong) =>
   `"${s.title}" by ${s.artist} — ${s.bpm ? `${s.bpm} BPM` : 'tempo unknown'}, ${
     s.key ? `key ${s.key} (Camelot)` : 'key unknown'
   }${s.genres.length ? `, genres: ${s.genres.join(', ')}` : ''}`;
 
-export function buildRecommendationPrompt(seeds: GsbSong[], count = SUGGESTIONS): string {
+export function buildRecommendationPrompt(seeds: FreqSong[], count = SUGGESTIONS): string {
   const bridge = seeds.length > 1;
   return [
     `You are helping a DJ plan a mix. Suggest ${count} real, commercially released songs that would mix well ${
@@ -67,19 +73,36 @@ export function createGemini({ env, fetch }: Deps) {
   const configured = Boolean(env.GEMINI_API_KEY);
   const model = env.GEMINI_MODEL || DEFAULT_MODEL;
 
-  async function suggest(seeds: GsbSong[], count = SUGGESTIONS): Promise<SongRef[]> {
+  async function suggest(seeds: FreqSong[], count = SUGGESTIONS): Promise<SongRef[]> {
     if (!env.GEMINI_API_KEY) throw new ConfigError('GEMINI_API_KEY is not set');
-    const res = await fetch(`${BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const url = `${BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    const res = await fetchWithTimeout(fetch, 'Gemini', url, {
       method: 'POST',
       headers: { 'x-goog-api-key': env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: buildRecommendationPrompt(seeds, count) }] }],
-        generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, temperature: 0.6 },
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: RESPONSE_SCHEMA,
+          temperature: 0.6,
+          // Listing songs doesn't need deep reasoning, and latency matters inside the 25s window.
+          thinkingConfig: { thinkingLevel: 'low' },
+        },
       }),
-    });
-    if (!res.ok) throw new UpstreamError('Gemini', res.status);
-    const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const text = (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('');
+    }, TIMEOUT_MS);
+    if (!res.ok) {
+      // Gemini's error body says why (bad key, unknown model, quota); keep it for the server log.
+      const detail = await res.text().catch(() => '');
+      throw new UpstreamError('Gemini', res.status, `responded with ${res.status}: ${detail.slice(0, 300)}`);
+    }
+    const body = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
+    };
+    // Thinking models can return thought parts; only the answer parts hold the JSON.
+    const text = (body.candidates?.[0]?.content?.parts ?? [])
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? '')
+      .join('');
     return parseSuggestions(text, count);
   }
 

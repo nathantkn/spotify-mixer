@@ -50,14 +50,18 @@ export function fromOpenKey(value: unknown): CamelotKey | null {
 
 const NOTE_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-/** A key name such as "Em", "F♯m", "Bb", "C# minor", "Db major" → Camelot. */
+/** A key name such as "Em", "F♯m", "Bb", "C# minor", "C#-Minor", "Db Major" → Camelot. */
 export function fromKeyName(value: unknown): CamelotKey | null {
   if (typeof value !== 'string') return null;
-  const m = value.trim().match(/^([A-Ga-g])\s*([#♯b♭]?)\s*(m(?:in(?:or)?)?|maj(?:or)?)?$/);
+  const m = value
+    .trim()
+    .match(/^([A-Ga-g])\s*([#♯b♭]?)[\s-]*([Mm][Ii][Nn](?:[Oo][Rr])?|[Mm][Aa][Jj](?:[Oo][Rr])?|[Mm])?$/);
   if (!m) return null;
   let pc = NOTE_PC[m[1].toUpperCase()];
   if (m[2] === '#' || m[2] === '♯') pc += 1;
   if (m[2] === 'b' || m[2] === '♭') pc -= 1;
-  const minor = !!m[3] && m[3].toLowerCase().startsWith('m') && !m[3].toLowerCase().startsWith('maj');
+  const mode = m[3] ?? '';
+  // "m"/"min"/"minor" = minor; "M"/"maj"/"major" or nothing = major
+  const minor = mode === 'm' || /^min/i.test(mode);
   return toCamelot((pc + 12) % 12, minor ? 0 : 1);
 }

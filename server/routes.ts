@@ -11,11 +11,11 @@ import {
 import type { Track } from '../src/lib/types';
 import { BadRequest, ConfigError, HOUR, mapLimit, TtlCache, UpstreamError, type Deps } from './core';
 import { createGemini, type Gemini } from './gemini';
-import { createGetSongBpm, gsbToTrack, type GetSongBpm, type GsbSong } from './getsongbpm';
+import { createFreqBlog, freqToTrack, type FreqBlog, type FreqSong } from './freqblog';
 import { createSpotify, type Spotify } from './spotify';
 
 export interface Services {
-  gsb: GetSongBpm;
+  freq: FreqBlog;
   spotify: Spotify;
   gemini: Gemini;
   recommendations: TtlCache<Track[]>;
@@ -23,7 +23,7 @@ export interface Services {
 
 export function createServices(deps: Deps): Services {
   return {
-    gsb: createGetSongBpm(deps),
+    freq: createFreqBlog(deps),
     spotify: createSpotify(deps),
     gemini: createGemini(deps),
     recommendations: new TtlCache<Track[]>(6 * HOUR, 300, deps.now),
@@ -31,6 +31,11 @@ export function createServices(deps: Deps): Services {
 }
 
 const SEARCH_RESULTS = 8;
+/**
+ * How many search results get BPM/key up front. 0 because FreqBlog's free tier is 1,000 lookups a month:
+ * results show "–" and a song is looked up once, when it's added (via /api/features).
+ */
+const SEARCH_ENRICH = 0;
 
 const json = <T>(body: T, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -56,11 +61,11 @@ function songRefs(value: unknown, max: number): SongRef[] {
     .map((s) => ({ ...s, title: String(s.title), artists: String(s.artists ?? '') }));
 }
 
-/** GetSongBPM facts onto a track; quietly keeps the track as-is if the lookup fails. */
-async function withGsb(gsb: GetSongBpm, t: Track): Promise<Track> {
-  if (!gsb.configured) return t;
-  const s = await gsb.lookup(t).catch(() => null);
-  return s ? { ...t, bpm: s.bpm, key: s.key, genres: s.genres } : t;
+/** FreqBlog facts onto a track; quietly keeps the track as-is if the lookup fails. */
+async function withFreq(freq: FreqBlog, t: Track): Promise<Track> {
+  if (!freq.configured) return t;
+  const s = await freq.lookup(t).catch(() => null);
+  return s ? { ...t, bpm: s.bpm, key: s.key, genres: s.genres.length ? s.genres : t.genres } : t;
 }
 
 async function search(svc: Services, q: string): Promise<Track[]> {
@@ -68,47 +73,50 @@ async function search(svc: Services, q: string): Promise<Track[]> {
   if (svc.spotify.configured) {
     try {
       const found = (await svc.spotify.search(q, 10)).slice(0, SEARCH_RESULTS);
-      return await mapLimit(found, 3, (t) => withGsb(svc.gsb, t));
+      const enriched = await mapLimit(found.slice(0, SEARCH_ENRICH), 3, (t) => withFreq(svc.freq, t));
+      return [...enriched, ...found.slice(SEARCH_ENRICH)];
     } catch (e) {
       // 401/403: app-only Spotify access refused (Spotify is moving away from it). Fall back below.
       if (!(e instanceof UpstreamError && (e.status === 401 || e.status === 403))) throw e;
     }
   }
-  return (await svc.gsb.searchSongs(q, 'song', SEARCH_RESULTS)).map(gsbToTrack);
+  // FreqBlog has no text search, so the fallback is one best-guess lookup by name.
+  const hit = await svc.freq.lookup({ title: q, artists: '' }, { verify: false });
+  return hit ? [freqToTrack(hit)] : [];
 }
 
 async function features(svc: Services, body: FeaturesRequest): Promise<FeaturesResponse> {
-  if (!svc.gsb.configured) throw new ConfigError('GETSONGBPM_API_KEY is not set');
+  if (!svc.freq.configured) throw new ConfigError('FREQBLOG_API_KEY is not set');
   const tracks = songRefs(body?.tracks, FEATURES_BATCH) as FeaturesRequest['tracks'];
-  const found = await mapLimit(tracks, 4, (t) => svc.gsb.lookup(t).catch(() => null));
+  const found = await mapLimit(tracks, 4, (t) => svc.freq.lookup(t).catch(() => null));
   const out: FeaturesResponse['features'] = {};
   tracks.forEach((t, i) => {
     const s = found[i];
-    if (s && typeof t.id === 'string') out[t.id] = { bpm: s.bpm, key: s.key, genres: s.genres };
+    if (s && typeof t.id === 'string') out[t.id] = { bpm: s.bpm, key: s.key, ...(s.genres.length && { genres: s.genres }) };
   });
   return { features: out };
 }
 
 /**
- * Seeds → their GetSongBPM entries → Gemini suggestions (from GetSongBPM data only) →
- * each suggestion verified on GetSongBPM (real BPM/key; invented songs drop out) → Spotify for art.
+ * Seeds → their FreqBlog entries → Gemini suggestions (from FreqBlog data only) →
+ * each suggestion verified on FreqBlog (real BPM/key; invented songs drop out) → Spotify for art.
  * The app then filters and ranks these with its own key/BPM/genre score.
  */
 async function recommend(svc: Services, body: RecommendRequest): Promise<Track[]> {
-  if (!svc.gsb.configured) throw new ConfigError('GETSONGBPM_API_KEY is not set');
+  if (!svc.freq.configured) throw new ConfigError('FREQBLOG_API_KEY is not set');
   if (!svc.gemini.configured) throw new ConfigError('GEMINI_API_KEY is not set');
   const refs = songRefs(body?.seeds, 2);
-  const seeds = (await mapLimit(refs, 2, (s) => svc.gsb.lookup(s))).filter((s): s is GsbSong => s !== null);
-  if (!seeds.length) return []; // not in GetSongBPM, so nothing trustworthy to prompt with
+  const seeds = (await mapLimit(refs, 2, (s) => svc.freq.lookup(s))).filter((s): s is FreqSong => s !== null);
+  if (!seeds.length) return []; // not in FreqBlog, so nothing trustworthy to prompt with
 
   const cacheKey = seeds.map((s) => s.id).join('|');
   const cached = svc.recommendations.get(cacheKey);
   if (cached) return cached;
 
   const suggestions = await svc.gemini.suggest(seeds);
-  const verified = await mapLimit(suggestions, 4, (s) => svc.gsb.lookup(s).catch(() => null));
+  const verified = await mapLimit(suggestions, 4, (s) => svc.freq.lookup(s).catch(() => null));
   const seen = new Set(seeds.map((s) => s.id));
-  const unique = verified.filter((s): s is GsbSong => {
+  const unique = verified.filter((s): s is FreqSong => {
     if (!s || seen.has(s.id)) return false;
     seen.add(s.id);
     return true;
@@ -118,7 +126,7 @@ async function recommend(svc: Services, body: RecommendRequest): Promise<Track[]
     const sp = svc.spotify.configured
       ? await svc.spotify.find({ title: s.title, artists: s.artist }).catch(() => null)
       : null;
-    return sp ? { ...sp, bpm: s.bpm, key: s.key, genres: s.genres } : gsbToTrack(s);
+    return sp ? { ...sp, bpm: s.bpm, key: s.key, genres: s.genres } : freqToTrack(s);
   });
   svc.recommendations.set(cacheKey, tracks);
   return tracks;
@@ -141,7 +149,10 @@ export async function handleApi(request: Request, svc: Services): Promise<Respon
   } catch (e) {
     if (e instanceof BadRequest) return fail(400, e.message);
     if (e instanceof ConfigError) return fail(503, e.message);
-    if (e instanceof UpstreamError) return fail(e.status === 429 ? 503 : 502, e.message);
+    if (e instanceof UpstreamError) {
+      console.warn(`[api] ${route}: ${e.message}`);
+      return fail(e.status === 504 ? 504 : e.status === 429 ? 503 : 502, e.message);
+    }
     console.error(e);
     return fail(500, 'Something went wrong');
   }

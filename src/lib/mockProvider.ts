@@ -27,6 +27,9 @@ export const mockProvider: TrackProvider = {
   async candidates() {
     return LIBRARY.map(copy);
   },
+  cachedCandidates() {
+    return null;
+  },
   async features(tracks) {
     const byId = new Map(LIBRARY.map((t) => [t.id, t]));
     const out: Record<string, { bpm: number | null; key: CamelotKey | null }> = {};

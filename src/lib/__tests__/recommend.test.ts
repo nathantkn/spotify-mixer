@@ -40,6 +40,8 @@ describe('recommend', () => {
     expect(recs.map((r) => r.score)).toEqual([...recs.map((r) => r.score)].sort((x, y) => y - x));
     // 8A vs A: 100, vs B (Adjacent): 95 → 98 (rounded average of 100 and 95 = 97.5)
     expect(recs[0]).toMatchObject({ score: 98 });
+    // one pair per target, in order
+    expect(recs[0].pairs.map((p) => p.key.label)).toEqual(['Same key', 'Adjacent']);
   });
 
   it('colours match %', () => {

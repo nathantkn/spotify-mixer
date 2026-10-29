@@ -3,8 +3,8 @@
 export interface ServerEnv {
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
-  GETSONGBPM_API_KEY?: string;
-  GETSONGBPM_BASE_URL?: string;
+  FREQBLOG_API_KEY?: string;
+  FREQBLOG_BASE_URL?: string;
   GEMINI_API_KEY?: string;
   GEMINI_MODEL?: string;
 }
@@ -26,8 +26,29 @@ export class UpstreamError extends Error {
   constructor(
     readonly service: string,
     readonly status: number,
+    detail = `responded with ${status}`,
   ) {
-    super(`${service} responded with ${status}`);
+    super(`${service} ${detail}`);
+  }
+}
+
+/**
+ * fetch with a deadline. A timeout or network failure becomes an UpstreamError
+ * (504 / 502) naming the service, instead of hanging the whole request.
+ */
+export async function fetchWithTimeout(
+  fetchImpl: typeof fetch,
+  service: string,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  try {
+    return await fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  } catch (e) {
+    const name = (e as Error)?.name;
+    if (name === 'TimeoutError' || name === 'AbortError') throw new UpstreamError(service, 504, `didn't respond within ${timeoutMs / 1000}s`);
+    throw new UpstreamError(service, 502, `couldn't be reached (${(e as Error)?.message ?? e})`);
   }
 }
 
@@ -56,9 +77,9 @@ export class TtlCache<V> {
   has(key: string) {
     return this.get(key) !== undefined;
   }
-  set(key: string, value: V) {
+  set(key: string, value: V, ttlMs = this.ttlMs) {
     if (this.map.size >= this.max) this.map.delete(this.map.keys().next().value!);
-    this.map.set(key, { value, expires: this.now() + this.ttlMs });
+    this.map.set(key, { value, expires: this.now() + ttlMs });
   }
 }
 
@@ -76,4 +97,24 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, i:
   return out;
 }
 
+/** At most `n` calls in flight across everything that shares the limiter. */
+export function createLimiter(n: number) {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  return async function run<T>(fn: () => Promise<T>): Promise<T> {
+    if (active >= n) await new Promise<void>((resolve) => waiting.push(resolve));
+    else active++;
+    try {
+      return await fn();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else active--;
+    }
+  };
+}
+
+export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export const MINUTE = 60_000;
 export const HOUR = 3_600_000;
