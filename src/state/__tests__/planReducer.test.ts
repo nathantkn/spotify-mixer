@@ -58,9 +58,9 @@ describe('planReducer', () => {
     const start = planReducer(samplePlan(), { type: 'add', track: { ...track('n1'), bpm: null, key: null, dur: null } });
     const s = planReducer(start, {
       type: 'fillTrackData',
-      patches: { n1: { bpm: 124, key: '5A', dur: 200 }, p1: { bpm: 90, key: '1B' }, gone: { bpm: 1 } },
+      patches: { n1: { bpm: 124, key: '5A', dur: 200, spotifyId: 'abc', img: 'https://i/x' }, p1: { bpm: 90, key: '1B' }, gone: { bpm: 1 } },
     });
-    expect(s.tracks.find((t) => t.id === 'n1')).toMatchObject({ bpm: 124, key: '5A', dur: 200 });
+    expect(s.tracks.find((t) => t.id === 'n1')).toMatchObject({ id: 'n1', bpm: 124, key: '5A', dur: 200, spotifyId: 'abc', img: 'https://i/x' });
     expect(s.tracks.find((t) => t.id === 'p1')).toMatchObject({ bpm: 100, key: '6A' }); // already known
     expect(planReducer(s, { type: 'fillTrackData', patches: { p1: { bpm: 90 } } })).toBe(s); // no-op keeps identity
   });
@@ -74,5 +74,15 @@ describe('planReducer', () => {
     const undone = planReducer(without, { type: 'insertAt', index: 2, track: p3 });
     expect(undone.tracks).toEqual(start.tracks);
     expect(avgMix(undone)).toBe(4);
+  });
+});
+
+describe('needsSpotify', () => {
+  it('asks only for tracks missing a Spotify id, art or length', async () => {
+    const { needsSpotify } = await import('../useSpotifyMatching');
+    const base = track('x');
+    expect(needsSpotify(base)).toBe(true); // no Spotify id
+    expect(needsSpotify({ ...base, id: 'spotify:track:7eqoqGkKwgOaWNNHx90uEZ', img: 'i', dur: 200 })).toBe(false); // Exportify row
+    expect(needsSpotify({ ...base, spotifyId: '7eqoqGkKwgOaWNNHx90uEZ', img: null })).toBe(true); // art missing
   });
 });

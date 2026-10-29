@@ -17,6 +17,11 @@ export interface Track {
   img?: string | null;
   /** Fallback art hue. */
   hue: number;
+  /**
+   * Bare Spotify track id once the track is matched to Spotify. Kept apart from `id` on purpose:
+   * notes are keyed by `id`, so it must never change after import.
+   */
+  spotifyId?: string | null;
 }
 
 export type Rating = 0 | 1 | 2 | 3 | 4 | 5;

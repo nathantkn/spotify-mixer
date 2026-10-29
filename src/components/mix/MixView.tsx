@@ -5,7 +5,8 @@ import { avgMix, totalSeconds } from '../../lib/plan';
 import { planFileName, serializePlan, toPlanFile } from '../../lib/planFile';
 import type { Track } from '../../lib/types';
 import type { PlanSession } from '../../state/session';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
+import { useSpotifyMatching } from '../../state/useSpotifyMatching';
 import { useTrackEnrichment } from '../../state/useTrackEnrichment';
 import shared from '../../styles/shared.module.css';
 import { AddSongSheet } from '../sheet/AddSongSheet';
@@ -24,6 +25,7 @@ type SheetView = { kind: 'transition'; fromId: string } | { kind: 'track'; id: s
 export function MixView({ session, onExit }: { session: PlanSession; onExit: () => void }) {
   const { plan, dispatch, saveStatus, saveNow } = usePlan();
   useTrackEnrichment();
+  const matching = useSpotifyMatching();
   // The view outlives `open` so the content stays put while the sheet slides out.
   const [view, setView] = useState<SheetView | null>(null);
   const [open, setOpen] = useState(false);
@@ -79,6 +81,7 @@ export function MixView({ session, onExit }: { session: PlanSession; onExit: () 
         `${Math.round(totalSeconds(plan.tracks) / 60)} min`,
         avg != null && `avg mix ${avg.toFixed(1)}`,
         missing > 0 && `${missing} missing BPM or key`,
+        matching && `matching Spotify ${matching.done}/${matching.total}`,
       ]
         .filter(Boolean)
         .join(' · ')

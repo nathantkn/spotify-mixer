@@ -16,7 +16,7 @@ import { Clock } from 'lucide-react';
 import { useState } from 'react';
 import { cx } from '../../lib/cx';
 import { noteKey } from '../../lib/plan';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
 import { TrackRow, TrackRowOverlay } from './TrackRow';
 import styles from './TrackTable.module.css';
 import { TransitionLink } from './TransitionLink';

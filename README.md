@@ -22,8 +22,13 @@ npm run lint
 | Finding songs (Add song search) | Spotify Web API search, with a FreqBlog name lookup as the fallback |
 | BPM and key (Camelot) | FreqBlog `/lookup`, by track + artist name |
 | Recommendation ideas | Gemini suggests 10 songs, each is verified on FreqBlog, then the app ranks them by key/BPM/genre |
+| Spotify details for imports | After a CSV or `.mixplan.json` loads, each track is matched to Spotify: by its Spotify id if it has one, otherwise by title + artist. This fills in `spotifyId`, album art and length |
 
-The browser only talks to `/api/search`, `/api/features` and `/api/recommend`. Those run in `server/routes.ts`,
+Imports only fill gaps; titles, artists, BPM, keys and notes you brought in are never overwritten. Track `id`s never
+change, because transition notes are keyed by them; the Spotify id goes in the optional `spotifyId` field
+(plan files are still v1). Matches and misses are remembered for 7 days, so reopening a plan doesn't spend quota again.
+
+The browser only talks to `/api/search`, `/api/features`, `/api/spotify-details` and `/api/recommend`. Those run in `server/routes.ts`,
 as Vercel Edge functions (`api/*.ts`) in production and inside the Vite dev server locally, so keys never
 reach the browser.
 
@@ -68,7 +73,7 @@ Offline, without keys: `VITE_TRACK_PROVIDER=mock npm run dev`.
 
 ### Verified live (2026-10-29)
 
-- Spotify app-only search works. If Spotify ever answers 401/403, search falls back to FreqBlog.
+- Spotify app-only search and lookup by track id (`/v1/tracks/{id}`) both work. If either is refused with 401/403, search falls back to FreqBlog and import matching falls back to title search.
 - FreqBlog `/lookup` returns BPM, key and genres, and the parser handles its response.
 - Gemini `generateContent` with structured JSON works on `gemini-3.5-flash`; a recommendation takes about 7s end to end.
   Don't use the `gemini-flash-latest` alias: for new keys, it hangs without answering.

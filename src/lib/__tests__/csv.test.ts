@@ -51,6 +51,7 @@ describe('tracksFromCSV', () => {
       img: 'https://i.scdn.co/a.jpg',
       hue: expect.any(Number),
     });
+    expect(tracks[1].spotifyId).toBeUndefined(); // "spotify:track:2" isn't a real 22-character id
     // Exportify bare-comma artists; Key −1 → null
     expect(tracks[1]).toMatchObject({ artists: 'Drake, Majid Jordan', key: null, img: null, genres: ['hip hop'] });
     expect(tracks[2]).toMatchObject({ key: '11B', genres: [] });
@@ -62,6 +63,11 @@ describe('tracksFromCSV', () => {
     expect(tracks[0].id).toBeTruthy();
     expect(tracks[1]).toMatchObject({ artists: 'Unknown artist', key: null, bpm: null, dur: null });
     expect(tracks[0].id).not.toBe(tracks[1].id);
+  });
+
+  it('keeps the Spotify id from a Track URI', () => {
+    const [t] = tracksFromCSV('Track URI,Track Name\nspotify:track:7eqoqGkKwgOaWNNHx90uEZ,Nights\n');
+    expect(t).toMatchObject({ id: 'spotify:track:7eqoqGkKwgOaWNNHx90uEZ', spotifyId: '7eqoqGkKwgOaWNNHx90uEZ' });
   });
 
   it('skips rows without a title and keeps ids unique', () => {

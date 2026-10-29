@@ -30,6 +30,9 @@ export const mockProvider: TrackProvider = {
   cachedCandidates() {
     return null;
   },
+  async spotifyDetails() {
+    return {};
+  },
   async features(tracks) {
     const byId = new Map(LIBRARY.map((t) => [t.id, t]));
     const out: Record<string, { bpm: number | null; key: CamelotKey | null }> = {};

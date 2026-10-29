@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { trackProvider } from '../lib/provider';
-import { usePlan } from './PlanContext';
+import { usePlan } from './usePlan';
 
 /**
  * Asks the provider for BPM, key and genres for tracks that are missing them,

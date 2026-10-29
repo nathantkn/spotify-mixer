@@ -11,6 +11,16 @@ describe('plan file round trip', () => {
     expect(restored).toEqual(plan);
   });
 
+  it('round-trips the Spotify id and ignores invalid ones', () => {
+    const plan = samplePlan();
+    plan.tracks[0] = { ...plan.tracks[0], spotifyId: '7eqoqGkKwgOaWNNHx90uEZ', img: 'https://i.scdn.co/x' };
+    const file = toPlanFile(plan, 1);
+    expect(file.tracks[0].spotifyId).toBe('7eqoqGkKwgOaWNNHx90uEZ');
+    expect('spotifyId' in file.tracks[1]).toBe(false);
+    expect(parsePlanJson(serializePlan(file))).toEqual(plan);
+    expect(fromPlanFile({ tracks: [{ title: 'x', spotifyId: 'nope' }] }).tracks[0].spotifyId).toBeUndefined();
+  });
+
   it('drops orphaned and empty notes on export', () => {
     const plan: PlanState = {
       ...samplePlan(),

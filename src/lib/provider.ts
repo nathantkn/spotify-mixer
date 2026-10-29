@@ -3,7 +3,7 @@ import { mockProvider } from './mockProvider';
 import type { Track } from './types';
 
 /** Catalogue facts a provider can fill in for a track that's missing them. */
-export type TrackFeatures = Partial<Pick<Track, 'bpm' | 'key' | 'dur' | 'img' | 'genres'>>;
+export type TrackFeatures = Partial<Pick<Track, 'bpm' | 'key' | 'dur' | 'img' | 'genres' | 'spotifyId'>>;
 
 export interface TrackProvider {
   /** Add-song search. */
@@ -14,6 +14,8 @@ export interface TrackProvider {
   cachedCandidates(seeds: Track[]): Track[] | null;
   /** Features for tracks the provider knows, keyed by track id. Unknown tracks are left out. */
   features(tracks: Track[]): Promise<Record<string, TrackFeatures>>;
+  /** Spotify id, album art and length for tracks, keyed by track id. Unmatched tracks are left out. */
+  spotifyDetails(tracks: Track[]): Promise<Record<string, TrackFeatures>>;
 }
 
 // All app code goes through this. Set VITE_TRACK_PROVIDER=mock to work offline.

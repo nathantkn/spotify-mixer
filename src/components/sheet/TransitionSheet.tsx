@@ -4,7 +4,7 @@ import { RATING_LABELS, RATINGS, ratingColor } from '../../lib/rating';
 import { recommend } from '../../lib/recommend';
 import { OK_COLORS, pairScore, tempoFact } from '../../lib/scoring';
 import type { TransitionNote } from '../../lib/types';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
 import { useCandidates } from '../../state/useCandidates';
 import shared from '../../styles/shared.module.css';
 import { FactCard } from './FactCard';

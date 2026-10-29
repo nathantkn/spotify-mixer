@@ -105,6 +105,42 @@ describe('/api/features', () => {
   });
 });
 
+describe('/api/spotify-details', () => {
+  const byId = (status = 200, name = 'Nights') => () =>
+    status === 200 ? spotifyTrack(name, 'Frank Ocean') : new Response('{}', { status });
+
+  it('looks up tracks with a Spotify id directly, and searches for the rest', async () => {
+    const { call, calls } = setup({ [`GET api.spotify.com/v1/tracks/${SPOTIFY_ID}`]: byId() });
+    const res = await call('POST', '/api/spotify-details', {
+      tracks: [
+        { id: `spotify:track:${SPOTIFY_ID}`, title: 'Nights', artists: 'Frank Ocean' },
+        { id: 'csv-2', title: 'Often', artists: 'The Weeknd' },
+        { id: 'csv-3', title: 'My Unreleased Edit', artists: 'Me' },
+      ],
+    });
+    expect(await res.json()).toEqual({
+      details: {
+        [`spotify:track:${SPOTIFY_ID}`]: { spotifyId: SPOTIFY_ID, img: 'https://i.scdn.co/300', dur: 307 },
+        'csv-2': { spotifyId: '4PhsKqMdgMEUSstTDAmMpg', img: 'https://i.scdn.co/300', dur: 307 },
+      },
+    });
+    const searches = calls.filter((c) => c.key === 'GET api.spotify.com/v1/search').map((c) => c.url.searchParams.get('q'));
+    expect(searches).toEqual(['track:Often artist:The Weeknd', 'track:My Unreleased Edit artist:Me']);
+  });
+
+  it('falls back to search when lookup by id is refused or unknown', async () => {
+    for (const status of [403, 404]) {
+      const { call } = setup({ [`GET api.spotify.com/v1/tracks/${SPOTIFY_ID}`]: byId(status) });
+      const res = await call('POST', '/api/spotify-details', { tracks: [{ id: 'x', spotifyId: SPOTIFY_ID, title: 'Nights', artists: 'Frank Ocean' }] });
+      expect(((await res.json()) as { details: object }).details).toEqual({ x: expect.objectContaining({ spotifyId: SPOTIFY_ID }) });
+    }
+  });
+
+  it('answers 503 without Spotify keys', async () => {
+    expect((await setup({}, { FREQBLOG_API_KEY: 'k' }).call('POST', '/api/spotify-details', { tracks: [] })).status).toBe(503);
+  });
+});
+
 describe('FreqBlog client', () => {
   it('caches hits and misses, and re-asks about queued tracks only after 10 minutes', async () => {
     let t = 0;

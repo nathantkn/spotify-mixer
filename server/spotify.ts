@@ -10,7 +10,7 @@ import { buildUrl } from '../src/lib/http';
 import { baseTitle, primaryArtist, sameSong } from '../src/lib/match';
 import { trackIdFor } from '../src/lib/spotifyId';
 import type { Track } from '../src/lib/types';
-import { ConfigError, fetchWithTimeout, UpstreamError, type Deps } from './core';
+import { ConfigError, createLimiter, fetchWithTimeout, sleep as defaultSleep, UpstreamError, type Deps } from './core';
 
 interface SpotifyImage { url: string; width?: number | null }
 interface SpotifyTrack {
@@ -38,12 +38,34 @@ export function toTrack(t: SpotifyTrack): Track {
     genres: [],
     img: pickImage(t.album?.images),
     hue: hueOf(t.name),
+    spotifyId: t.id,
   };
 }
 
-export function createSpotify({ env, fetch, now = Date.now }: Deps) {
+export function createSpotify({ env, fetch, now = Date.now }: Deps, sleep = defaultSleep) {
   const configured = Boolean(env.SPOTIFY_CLIENT_ID && env.SPOTIFY_CLIENT_SECRET);
   let token: { value: string; expires: number } | null = null;
+  // Imports can look up many tracks; keep bursts small (quota is per developer account).
+  const limit = createLimiter(4);
+
+  /** GET with the app token: refreshes an expired token once, waits out a short 429 once. */
+  async function apiGet(url: string): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      const res = await limit(async () =>
+        fetchWithTimeout(fetch, 'Spotify', url, { headers: { Authorization: `Bearer ${await getToken()}` } }, 8_000),
+      );
+      if (res.status === 401 && attempt === 0) {
+        token = null; // expired early; get a fresh one once
+        continue;
+      }
+      const retryAfter = Number(res.headers.get('Retry-After'));
+      if (res.status === 429 && retryAfter > 0 && retryAfter <= 5 && attempt < 2) {
+        await sleep(retryAfter * 1000);
+        continue;
+      }
+      return res;
+    }
+  }
 
   async function getToken(): Promise<string> {
     if (!configured) throw new ConfigError('SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET are not set');
@@ -62,18 +84,20 @@ export function createSpotify({ env, fetch, now = Date.now }: Deps) {
     return token.value;
   }
 
-  async function search(q: string, limit = 10): Promise<Track[]> {
-    const url = buildUrl('https://api.spotify.com', '/v1/search', { q, type: 'track', limit: Math.min(limit, 10) });
-    for (let attempt = 0; ; attempt++) {
-      const res = await fetchWithTimeout(fetch, 'Spotify', url, { headers: { Authorization: `Bearer ${await getToken()}` } }, 8_000);
-      if (res.status === 401 && attempt === 0) {
-        token = null; // expired early; get a fresh one once
-        continue;
-      }
-      if (!res.ok) throw new UpstreamError('Spotify', res.status);
-      const body = (await res.json()) as { tracks?: { items?: SpotifyTrack[] } };
-      return (body.tracks?.items ?? []).filter((t) => t?.id && t.name).map(toTrack);
-    }
+  async function search(q: string, max = 10): Promise<Track[]> {
+    const res = await apiGet(buildUrl('https://api.spotify.com', '/v1/search', { q, type: 'track', limit: Math.min(max, 10) }));
+    if (!res.ok) throw new UpstreamError('Spotify', res.status);
+    const body = (await res.json()) as { tracks?: { items?: SpotifyTrack[] } };
+    return (body.tracks?.items ?? []).filter((t) => t?.id && t.name).map(toTrack);
+  }
+
+  /** One track by Spotify id (the batch endpoint is gone for development-mode apps); null if unknown. */
+  async function getTrack(spotifyId: string): Promise<Track | null> {
+    const res = await apiGet(`https://api.spotify.com/v1/tracks/${encodeURIComponent(spotifyId)}`);
+    if (res.status === 404 || res.status === 400) return null;
+    if (!res.ok) throw new UpstreamError('Spotify', res.status);
+    const t = (await res.json()) as SpotifyTrack;
+    return t?.id && t.name ? toTrack(t) : null;
   }
 
   /** The Spotify entry for a known song, for its art, length and id. */
@@ -82,7 +106,7 @@ export function createSpotify({ env, fetch, now = Date.now }: Deps) {
     return found.find((t) => sameSong(ref, t)) ?? null;
   }
 
-  return { configured, search, find };
+  return { configured, search, find, getTrack };
 }
 
 export type Spotify = ReturnType<typeof createSpotify>;

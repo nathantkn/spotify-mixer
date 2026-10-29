@@ -18,6 +18,13 @@ export interface FeaturesResponse {
   features: Record<string, TrackFeatures>;
 }
 
+export interface SpotifyDetailsRequest {
+  tracks: (SongRef & { id: string; spotifyId?: string | null })[];
+}
+export interface SpotifyDetailsResponse {
+  details: Record<string, Pick<TrackFeatures, 'spotifyId' | 'img' | 'dur'>>;
+}
+
 export interface RecommendRequest {
   seeds: SongRef[];
 }
@@ -26,5 +33,5 @@ export interface ApiErrorBody {
   error: string;
 }
 
-/** Most tracks per /api/features call, so one call stays well inside function time limits. */
+/** Most tracks per /api/features or /api/spotify-details call, so one call stays well inside function time limits. */
 export const FEATURES_BATCH = 20;

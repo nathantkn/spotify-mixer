@@ -77,6 +77,23 @@ describe('api provider', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('looks up Spotify details in batches, sending the Spotify id, and remembers misses', async () => {
+    const { client, calls } = fakeClient((_m, path, body) => {
+      expect(path).toBe('/spotify-details');
+      const tracks = (body as { tracks: { id: string }[] }).tracks;
+      return { details: Object.fromEntries(tracks.filter((x) => x.id !== 'b').map((x) => [x.id, { spotifyId: `sp-${x.id}`, img: 'i', dur: 200 }])) };
+    });
+    const provider = createApiProvider(client, createFeatureStore(() => undefined), createFeatureStore(() => undefined));
+    const out = await provider.spotifyDetails([{ ...t('a'), spotifyId: 'known' }, t('b')]);
+    expect(out).toEqual({ a: { spotifyId: 'sp-a', img: 'i', dur: 200 } });
+    expect((calls[0].body as { tracks: object[] }).tracks).toEqual([
+      { id: 'a', title: 'a', artists: 'A', spotifyId: 'known' },
+      { id: 'b', title: 'b', artists: 'A', spotifyId: undefined },
+    ]);
+    await provider.spotifyDetails([t('a'), t('b')]);
+    expect(calls).toHaveLength(1);
+  });
+
   it('searches only for non-empty queries', async () => {
     const { client, calls } = fakeClient(() => ({ tracks: [t('x')] }));
     const provider = createApiProvider(client);

@@ -2,7 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { cx } from '../../lib/cx';
 import { recommend } from '../../lib/recommend';
 import type { Track } from '../../lib/types';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
 import { useCandidates } from '../../state/useCandidates';
 import shared from '../../styles/shared.module.css';
 import { FactCard } from './FactCard';

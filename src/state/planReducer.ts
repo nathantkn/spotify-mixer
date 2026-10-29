@@ -65,7 +65,7 @@ export function planReducer(state: PlanState, action: PlanAction): PlanState {
         const patch = action.patches[t.id];
         if (!patch) return t;
         const next = { ...t };
-        for (const k of ['bpm', 'key', 'dur', 'img'] as const) {
+        for (const k of ['bpm', 'key', 'dur', 'img', 'spotifyId'] as const) {
           if (next[k] == null && patch[k] != null) {
             (next as Record<typeof k, unknown>)[k] = patch[k];
             changed = true;

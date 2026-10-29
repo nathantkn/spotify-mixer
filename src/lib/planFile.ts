@@ -3,6 +3,7 @@ import { ImportError } from './errors';
 import { hueOf, newId } from './format';
 import { DEFAULT_TITLE, noteKey, uniqueIds } from './plan';
 import { clampRating } from './rating';
+import { spotifyIdOf } from './spotifyId';
 import type { NoteKey, PlanFileV1, PlanState, Track, TransitionNote } from './types';
 
 /** Only notes whose two tracks are both still in the plan, and that have a rating or text. */
@@ -20,8 +21,9 @@ export function toPlanFile(plan: PlanState, updated = Date.now()): PlanFileV1 {
     id: plan.id,
     title: plan.title.trim() || DEFAULT_TITLE,
     updated,
-    tracks: plan.tracks.map(({ id, title, artists, bpm, key, dur, genres, img, hue }) => ({
+    tracks: plan.tracks.map(({ id, title, artists, bpm, key, dur, genres, img, hue, spotifyId }) => ({
       id, title, artists, bpm, key, dur, genres, img: img ?? null, hue,
+      ...(spotifyId ? { spotifyId } : {}), // optional, so v1 files without it stay valid
     })),
     transitions,
   };
@@ -53,6 +55,7 @@ export function fromPlanFile(data: unknown): PlanState {
         genres: Array.isArray(t.genres) ? t.genres.map((g) => str(g).toLowerCase().trim()).filter(Boolean) : [],
         img: str(t.img).trim() || null,
         hue: typeof t.hue === 'number' && Number.isFinite(t.hue) ? t.hue : hueOf(title),
+        ...(spotifyIdOf(str(t.spotifyId)) ? { spotifyId: spotifyIdOf(str(t.spotifyId)) } : {}),
       };
     });
 

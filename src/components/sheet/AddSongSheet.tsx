@@ -4,7 +4,7 @@ import { hueOf, newId, parseLength } from '../../lib/format';
 import { trackProvider } from '../../lib/provider';
 import { inPlanMatcher } from '../../lib/recommend';
 import type { CamelotKey, Track } from '../../lib/types';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
 import shared from '../../styles/shared.module.css';
 import { TrackResult } from './RecommendationList';
 import styles from './sheetBody.module.css';

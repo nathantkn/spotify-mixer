@@ -6,8 +6,11 @@ import {
   type FeaturesResponse,
   type RecommendRequest,
   type SongRef,
+  type SpotifyDetailsRequest,
+  type SpotifyDetailsResponse,
   type TracksResponse,
 } from '../src/lib/apiTypes';
+import { spotifyIdOf } from '../src/lib/spotifyId';
 import type { Track } from '../src/lib/types';
 import { BadRequest, ConfigError, HOUR, mapLimit, TtlCache, UpstreamError, type Deps } from './core';
 import { createGemini, type Gemini } from './gemini';
@@ -98,6 +101,34 @@ async function features(svc: Services, body: FeaturesRequest): Promise<FeaturesR
 }
 
 /**
+ * Spotify id, art and length for imported tracks. By id when the track has one (Exportify CSVs),
+ * otherwise by title + artist search with the same-song check. Unmatched tracks are left out.
+ */
+async function spotifyDetails(svc: Services, body: SpotifyDetailsRequest): Promise<SpotifyDetailsResponse> {
+  if (!svc.spotify.configured) throw new ConfigError('SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET are not set');
+  const tracks = songRefs(body?.tracks, FEATURES_BATCH) as SpotifyDetailsRequest['tracks'];
+  const found = await mapLimit(tracks, 3, async (t) => {
+    const sid = typeof t.spotifyId === 'string' ? spotifyIdOf(t.spotifyId) : spotifyIdOf(String(t.id));
+    if (sid) {
+      try {
+        const byId = await svc.spotify.getTrack(sid);
+        if (byId) return byId;
+      } catch (e) {
+        // 403: lookup by id refused for app-only tokens; searching still works.
+        if (!(e instanceof UpstreamError && (e.status === 401 || e.status === 403))) throw e;
+      }
+    }
+    return svc.spotify.find(t);
+  });
+  const details: SpotifyDetailsResponse['details'] = {};
+  tracks.forEach((t, i) => {
+    const s = found[i];
+    if (s && typeof t.id === 'string') details[t.id] = { spotifyId: s.spotifyId, img: s.img, dur: s.dur };
+  });
+  return { details };
+}
+
+/**
  * Seeds → their FreqBlog entries → Gemini suggestions (from FreqBlog data only) →
  * each suggestion verified on FreqBlog (real BPM/key; invented songs drop out) → Spotify for art.
  * The app then filters and ranks these with its own key/BPM/genre score.
@@ -141,6 +172,8 @@ export async function handleApi(request: Request, svc: Services): Promise<Respon
         return json<TracksResponse>({ tracks: await search(svc, url.searchParams.get('q') ?? '') });
       case 'POST /api/features':
         return json<FeaturesResponse>(await features(svc, await readJson(request)));
+      case 'POST /api/spotify-details':
+        return json<SpotifyDetailsResponse>(await spotifyDetails(svc, await readJson(request)));
       case 'POST /api/recommend':
         return json<TracksResponse>({ tracks: await recommend(svc, await readJson(request)) });
       default:

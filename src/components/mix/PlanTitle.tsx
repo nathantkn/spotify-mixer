@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { DEFAULT_TITLE } from '../../lib/plan';
-import { usePlan } from '../../state/PlanContext';
+import { usePlan } from '../../state/usePlan';
 import styles from './PlanTitle.module.css';
 
 export function PlanTitle({ autoFocus }: { autoFocus?: boolean }) {

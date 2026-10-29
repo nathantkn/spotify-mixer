@@ -2,6 +2,7 @@ import { parseCamelot, toCamelot } from './camelot';
 import { ImportError } from './errors';
 import { hueOf, newId } from './format';
 import { uniqueIds } from './plan';
+import { spotifyIdOf } from './spotifyId';
 import type { Track } from './types';
 
 /** Quote-aware CSV parser: "" escapes, commas/newlines in quotes, CRLF, leading BOM. Blank rows are dropped. */
@@ -90,6 +91,7 @@ export function tracksFromCSV(text: string): Track[] {
       genres: genres ? genres.toLowerCase().split(',').map((g) => g.trim()).filter(Boolean) : [],
       img: get('img') || null,
       hue: hueOf(title),
+      ...(spotifyIdOf(get('id')) ? { spotifyId: spotifyIdOf(get('id')) } : {}),
     });
   }
   if (!tracks.length) throw new ImportError('No tracks found — every row is missing a track name.');
